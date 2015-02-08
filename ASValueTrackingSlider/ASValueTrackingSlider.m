@@ -72,7 +72,7 @@
     NSAssert(font, @"font can not be nil, it must be a valid UIFont");
     _font = font;
     [self.popUpView setFont:font];
-
+    
     [self calculatePopUpViewSize];
 }
 
@@ -85,10 +85,11 @@
 
 - (void)setPopUpViewColor:(UIColor *)popUpViewColor
 {
+    _popUpViewAnimated = YES;
     _popUpViewColor = popUpViewColor;
     _popUpViewAnimatedColors = nil; // animated colors should be discarded
     [self.popUpView setColor:popUpViewColor];
-
+    
     if (_autoAdjustTrackColor) {
         super.minimumTrackTintColor = [self.popUpView opaqueColor];
     }
@@ -161,13 +162,13 @@
 - (void)showPopUpViewAnimated:(BOOL)animated
 {
     self.popUpViewAlwaysOn = YES;
-    [self _showPopUpViewAnimated:animated];
+    [self _showPopUpViewAnimated:animated && _popUpViewAnimated];
 }
 
 - (void)hidePopUpViewAnimated:(BOOL)animated
 {
     self.popUpViewAlwaysOn = NO;
-    [self _hidePopUpViewAnimated:animated];
+    [self _hidePopUpViewAnimated:animated && _popUpViewAnimated];
 }
 
 #pragma mark - ASValuePopUpViewDelegate
@@ -190,22 +191,22 @@
     _autoAdjustTrackColor = YES;
     _valueRange = self.maximumValue - self.minimumValue;
     _popUpViewAlwaysOn = NO;
-
+    
     NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
     [formatter setNumberStyle:NSNumberFormatterDecimalStyle];
     [formatter setRoundingMode:NSNumberFormatterRoundHalfUp];
     [formatter setMaximumFractionDigits:2];
     [formatter setMinimumFractionDigits:2];
     _numberFormatter = formatter;
-
+    
     self.popUpView = [[ASValuePopUpView alloc] initWithFrame:CGRectZero];
     self.popUpViewColor = [UIColor colorWithHue:0.6 saturation:0.6 brightness:0.5 alpha:0.8];
-
+    
     self.popUpViewCornerRadius = 4.0;
     self.popUpView.alpha = 0.0;
     self.popUpView.delegate = self;
     [self addSubview:self.popUpView];
-
+    
     self.textColor = [UIColor whiteColor];
     self.font = [UIFont boldSystemFontOfSize:22.0f];
 }
@@ -253,7 +254,7 @@
     // set _popUpViewSize to the maximum size required (negative values need more width than positive values)
     CGSize minValSize = [self.popUpView popUpSizeForString:[_numberFormatter stringFromNumber:@(self.minimumValue)]];
     CGSize maxValSize = [self.popUpView popUpSizeForString:[_numberFormatter stringFromNumber:@(self.maximumValue)]];
-
+    
     _defaultPopUpViewSize = (minValSize.width >= maxValSize.width) ? minValSize : maxValSize;
     _popUpViewSize = _defaultPopUpViewSize;
 }
@@ -281,12 +282,12 @@
 - (void)_showPopUpViewAnimated:(BOOL)animated
 {
     if (self.delegate) [self.delegate sliderWillDisplayPopUpView:self];
-    [self.popUpView showAnimated:animated];
+    [self.popUpView showAnimated:animated && _popUpViewAnimated];
 }
 
 - (void)_hidePopUpViewAnimated:(BOOL)animated
 {
-    [self.popUpView hideAnimated:animated completionBlock:^{
+    [self.popUpView hideAnimated:animated && _popUpViewAnimated completionBlock:^{
         if ([self.delegate respondsToSelector:@selector(sliderDidHidePopUpView:)]) {
             [self.delegate sliderDidHidePopUpView:self];
         }
@@ -353,7 +354,7 @@
 - (BOOL)beginTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event
 {
     BOOL begin = [super beginTrackingWithTouch:touch withEvent:event];
-    if (begin && !self.popUpViewAlwaysOn) [self _showPopUpViewAnimated:YES];
+    if (begin && !self.popUpViewAlwaysOn) [self _showPopUpViewAnimated:YES && _popUpViewAnimated];
     return begin;
 }
 
@@ -371,13 +372,13 @@
 - (void)cancelTrackingWithEvent:(UIEvent *)event
 {
     [super cancelTrackingWithEvent:event];
-    if (self.popUpViewAlwaysOn == NO) [self _hidePopUpViewAnimated:YES];
+    if (self.popUpViewAlwaysOn == NO) [self _hidePopUpViewAnimated:YES && _popUpViewAnimated];
 }
 
 - (void)endTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event
 {
     [super endTrackingWithTouch:touch withEvent:event];
-    if (self.popUpViewAlwaysOn == NO) [self _hidePopUpViewAnimated:YES];
+    if (self.popUpViewAlwaysOn == NO) [self _hidePopUpViewAnimated:YES && _popUpViewAnimated];
 }
 
 @end
